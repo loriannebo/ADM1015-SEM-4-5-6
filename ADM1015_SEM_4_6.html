@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADM1015 SEM 4 À 6</title>
+<style>
+:root {
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --text: #172033;
+  --muted: #1858b8;
+  --accent: #1e72d1;
+  --accent2: #2a1ddd;
+  --shadow: 0 12px 35px rgba(31, 41, 55, .12);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 18px 40px;
+}
+h1 { text-align:center; margin: 0 0 8px; font-size: 28px; }
+.subtitle { text-align:center; color:var(--muted); margin-bottom:24px; }
+.counter { text-align:center; color:var(--muted); margin-bottom:18px; font-size:14px; }
+.success-panel { position: sticky; top: 0; z-index: 30; background: rgba(244,247,251,.96); backdrop-filter: blur(8px); padding: 12px 0 14px; margin: 0 0 18px; }
+.success-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; max-width:560px; margin:0 auto 8px; font-size:14px; font-weight:bold; }
+.success-percent { color:#19c909; font-size:22px; font-weight:800; }
+.success-track { max-width:560px; height:10px; margin:0 auto 7px; background:#fecaca; border-radius:999px; overflow:hidden; }
+.success-fill { height:100%; width:100%; background:#20ca4b; border-radius:999px; transition:width .25s ease; }
+.success-details { text-align:center; color:var(--muted); font-size:12px; }
+.grid { display:flex; flex-direction:column; gap:16px; }
+.card-wrap {
+  perspective: 1200px;
+  height: 190px;
+  cursor: pointer;
+}
+.card {
+  width:100%; height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+  transition: transform .6s ease;
+}
+.card.flipped { transform:rotateY(180deg); }
+.face {
+  position:absolute; inset:0;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  background:var(--card);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:28px;
+  font-size:20px;
+  line-height:1.45;
+}
+.front { border-top:5px solid var(--accent); }
+.back {
+  transform:rotateY(180deg);
+  border-top:5px solid #310123;
+  font-size:18px;
+}
+.hint {
+  position:absolute; bottom:10px; left:0; right:0;
+  text-align:center; font-size:12px; color:var(--muted);
+}
+button {
+  display:block;
+  margin:30px auto 0;
+  border:0;
+  border-radius:999px;
+  padding:14px 30px;
+  background:var(--accent);
+  color:white;
+  font-size:17px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(49,94,251,.25);
+}
+button:hover { background:var(--accent2); }
+
+.card-wrap { position: relative; }
+.card-wrap.marked .face { border: 3px solid #e53935 !important; }
+.card-wrap.marked .front { border-top: 5px solid #e53935 !important; }
+.mark-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #b71c1c;
+  background: #e53935;
+  padding: 0;
+  margin: 0;
+  z-index: 20;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,.18);
+}
+.mark-btn:hover { background: #c62828; }
+.mark-btn.marked { background: #8b0000; }
+
+/* Bulle flottante des cartes d'erreurs */
+.error-bubble {
+  position: fixed; right: 22px; bottom: 22px; z-index: 1000;
+  width: 62px; height: 62px; border-radius: 50%; margin: 0; padding: 0;
+  background: #e53935; color: #fff; border: 3px solid #fff;
+  box-shadow: 0 5px 18px rgba(0,0,0,.25); font-size: 25px;
+  display: flex; align-items: center; justify-content: center;
+}
+.error-bubble:hover { background: #c62828; }
+.error-badge {
+  position: absolute; top: -6px; right: -5px; min-width: 25px; height: 25px;
+  padding: 0 6px; border-radius: 999px; background: #172033; color: white;
+  border: 2px solid white; font-size: 13px; line-height: 21px; text-align: center;
+}
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 1100;
+  background: rgba(15, 23, 42, .62); padding: 24px;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.error-modal {
+  width: min(850px, 100%); max-height: 88vh; overflow-y: auto;
+  background: var(--bg); border-radius: 18px; padding: 24px; position: relative;
+  box-shadow: 0 18px 60px rgba(0,0,0,.35);
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-right: 42px; }
+.modal-header h2 { margin: 0 0 18px; font-size: 22px; }
+.close-modal {
+  position: absolute; top: 12px; right: 12px; margin: 0; width: 38px; height: 38px;
+  padding: 0; border-radius: 50%; background: #e5e7eb; color: #172033; font-size: 25px;
+  box-shadow: none;
+}
+.close-modal:hover { background: #cbd5e1; }
+.error-list { display: flex; flex-direction: column; gap: 14px; }
+.error-card { position: relative; min-height: 145px; background: white; border: 2px solid #e53935;
+  border-top: 5px solid #e53935; border-radius: 14px; padding: 24px 48px 24px 20px;
+  box-shadow: var(--shadow); cursor: pointer; white-space: pre-wrap; line-height: 1.45; }
+.error-card .answer { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; }
+.error-card.flipped .answer { display: block; }
+.unmark-btn {
+  position: absolute; top: 8px; right: 8px; margin: 0; padding: 0; width: 20px; height: 20px;
+  min-width: 20px; border-radius: 50%; border: 2px solid #0759b7; background: #1e72d1;
+  box-shadow: 0 2px 5px rgba(0,0,0,.18); z-index: 2;
+}
+.unmark-btn:hover { background: #084f9e; }
+.empty-errors { text-align: center; color: var(--muted); padding: 28px 12px; }
+@media (max-width:600px) {
+  .error-bubble { right: 14px; bottom: 14px; width: 56px; height: 56px; }
+  .modal-overlay { padding: 10px; } .error-modal { padding: 18px 12px; max-height: 92vh; }
+  .modal-header h2 { font-size: 19px; }
+}
+
+@media (max-width:600px) {
+  .card-wrap { height:220px; }
+  .face { font-size:18px; padding:22px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📚 ADM1015 SEM 4 À 6</h1>
+  <div class="subtitle">Clique sur une question pour voir la réponse. Reclique pour revenir à la question.</div>
+  <div class="success-panel" aria-live="polite">
+    <div class="success-heading"><span>✅ Taux de réussite</span><span id="successPercent" class="success-percent">100 %</span></div>
+    <div class="success-track" role="progressbar" aria-label="Taux de réussite" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="successFill" class="success-fill"></div></div>
+    <div id="successDetails" class="success-details">0 carte en rouge · 0 carte réussie sur 0</div>
+  </div>
+  <div class="counter"><span id="count">0</span> cartes</div>
+  <div id="cards" class="grid"></div>
+  <button id="shuffleBtn">🔀 Mélanger</button>
+</div>
+
+<button id="errorBubble" class="error-bubble" type="button" aria-label="Afficher les cartes d'erreurs" title="Afficher les cartes d'erreurs">
+  ⚑ <span id="errorBadge" class="error-badge">0</span>
+</button>
+
+<div id="errorModalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="errorModalTitle">
+  <div class="error-modal">
+    <button id="closeErrorModal" class="close-modal" type="button" aria-label="Fermer">×</button>
+    <div class="modal-header"><h2 id="errorModalTitle">🔴 Mes cartes d'erreurs (<span id="modalErrorCount">0</span>)</h2></div>
+    <div id="errorCardsList" class="error-list"></div>
+  </div>
+</div>
+
+<script>
+const originalCards = [
+  {
+    q: "Définition accueil?",
+    a: "L’accueil désigne […] l’ensemble des actions qui sont menées afin de faciliter chez l’employé la compréhension de son poste et de l’organisation"
+  },
+  {
+    q: "définition analyse de l’emploi?",
+    a: "Démarche structurée de recensement des tâches, responsabilités, fonctions et conditions d’exécution du travail dans un emploi donné. Cette analyse recense aussi les connaissances, habiletés, aptitudes et autres caractéristiques requises par l’emploi"
+  },
+  {
+    q: "définition Contrat psychologique?",
+    a: "Ensemble de croyances et de convictions relatives aux obligations réciproques concernant la relation de travail"
+  },
+  {
+    q: "définition Dotation?",
+    a: "La dotation représente […] le processus qui consiste à trouver la personne avec la qualification requise pour un emploi et grâce auquel l’organisation peut renouveler ses ressources humaines (RH)"
+  },
+  {
+    q: "définition Employeur de choix?",
+    a: "Entreprise dont l’image employeur est très bonne et suffisamment attractive pour attirer et retenir les meilleures compétences"
+  },
+  {
+    q: "techniques qu’on peut utiliser?",
+    a: "1)  stratégies de marketing de recrutement, 2) techniques de vente"
+  },
+  {
+    q: "Nomme des exemples de techniques de vente?",
+    a: "la découverte active des besoins, les traitements des objections, la négociation, donc c'est des techniques qu'on va pouvoir également utiliser au niveau du recrutement"
+  },
+  {
+    q: "à quoi ça vise?",
+    a: "Créer conditions favorables, propositions de valeur et être en mesure de combler le poste"
+  },
+  {
+    q: "est-ce que les exigences du poste peuvent être considérés comme des critères de sélection?",
+    a: "Non puisque seuls les candidats qui y répondent obtiendront une entrevue. Les autres candidats qui ne répondent pas à ces exigences ne pourront obtenir le poste et doivent donc être écartés dès l’étape de la présélection"
+  },
+  {
+    q: "pour la marque employeur que vise la génération Y?",
+    a: "Accorde plus d’importance au leadership et au dépassement"
+  },
+  {
+    q: "pour la marque employeur que vise la génération X?",
+    a: "Valorise quant à elle la connexion émotionnelle"
+  },
+  {
+    q: "pour la marque employeur que vise la génération des boomers?",
+    a: "Peu privilégient la stabilité la responsabilité sociale"
+  },
+  {
+    q: "qu’est-ce que la marque employeur doit faire?",
+    a: "FAIRE RESSORTIR CE QUI NOUS DIFFÉRENCIE DES AUTRES EMPLOYEURS REFLÉTER LA RÉALITÉ PERMETTRE DE TENIR SES PROMESSES&#x20;"
+  },
+  {
+    q: "comment est-il possible de diffuser sa marque employeur?",
+    a: "par le biais des outils de recrutement traditionnels (foires d’emplois, affichages de postes, journaux) ou virtuels (médias sociaux, site Internet d’entreprise, sites de recherche d’emplois)."
+  },
+  {
+    q: "Auprès de qui il est possible de valider et mesurer l’impact de sa marque employeur?",
+    a: "Les données sont recueillies auprès des candidats en processus d’embauche, des nouveaux employés, des employés actuels et des employés qui quittent l’organisation."
+  },
+  {
+    q: "Qu’est-ce que La structure matricielle?",
+    a: "peut prendre différentes formes: par projets, par équipes, par produits, etc. On la trouve généralement dans des entreprises qui ont des activités variées et complexes ou couvrant un large territoire comme un pays (p. ex., Via Rail), voire la planète (p. ex., Coca-Cola). Ce type de structure amène de plus en plus de personnes à relever de deux supérieurs hiérarchiques. Par exemple, un conseiller en RH devra offrir des services à son directeur régional (p. ex., Est du Canada), mais sera aussi dans un rapport d'autorité avec le directeur du service des RH dont le siège social serait à Montréal."
+  },
+  {
+    q: "quels sont les avantages de la structure matricielle?",
+    a: "• Elle se base sur la compétence opérationnelle et fonctionnelle. • Elle donne la possibilité de choisir les individus en fonction des projets. • Elle favorise les relations transversales sur un thème commun. • Elle est à proximité des services fonctionnels (expertises, compétences, etc.) et offre un meilleur soutien aux opérations."
+  },
+  {
+    q: "quels sont les inconvénients de la structure matricielle?",
+    a: "• Il peut y avoir des conflits entre les opérations et les fonctions de support qui n'ont pas toujours les mêmes objectifs. • Les fonctions de support peuvent manquer de ressources pour répondre aux besoins des opérations. • En raison de la complexité de l'organigramme, il risque d'y avoir de la confusion dans les rôles et une coordination difficile. • Il peut manquer d'unité de commandement, car les individus sont placés sous la responsabilité de plusieurs supérieurs (hiérarchiques et fonctionnels). • La prise de décision peut souffrir d'un ralentissement."
+  },
+  {
+    q: "Qu’est-ce que l’ Analyse de l'emploi?",
+    a: "Ensemble d'activités qui permettent de recueillir de l'information sur les activités et les tâches d'un poste et qui reposent sur l'utilisation d'une méthode déterminée (p. ex., l'observation des employés dans leur travail)."
+  },
+  {
+    q: "pourquoi doit-on connaître les exigences et la nature d’un emploi?",
+    a: "Pour déterminer le salaire"
+  },
+  {
+    q: "quelles sont les outils ou méthodes de collecte de l'information sur les emplois?",
+    a: "1) L’analyse de documents existants, 2) l’observation, 3) l’entrevue, 4) le questionnaire, 5) la prise de note par les titulaires"
+  },
+  {
+    q: "en analyse d’emploi, quels sont les avantages et inconvénients de la méthode d’analyse de documents existants?",
+    a: "Avantages : Elle est rapide et permet de disposer d’une base que l’on peut adapter ; désavantages : elle est rarement adaptée à chacun des postes"
+  },
+  {
+    q: "en analyse d’emploi, quels sont les avantages et inconvénients de la méthode d’observation?",
+    a: "Avantages : Elle est effectuée par un observateur extérieur plus neutre et objectif que les titulaires du poste et elle est rapide pour les tâches simples et répétitives ; désavantages : elle est peu pertinente pour les tâches difficilement observables, devient longue lorsque le poste est complexe et requiert un observateur dont la présence peut être mal perçue"
+  },
+  {
+    q: "en analyse d’emploi quels sont les avantages inconvénients de la méthode de l’entrevue?",
+    a: "Avantages : Elle permet de recueillir des renseignements sur les tâches et le contexte de l’emploi ainsi que de partager différents points de vue lorsque l’entrevue se déroule en groupe ; désavantages : elle représente un long processus et peut manquer d’objectivité de la part des personnes interrogées"
+  },
+  {
+    q: "en analyse d’emploi quels sont les avantages et inconvénients de la méthode du questionnaire?",
+    a: "Avantages : Il est rapide et facile à consulter par un grand nombre de personnes ; désavantages : il énumère souvent de nombreux thèmes, ce qui limite la quantité d’informations recueillies"
+  },
+  {
+    q: "en analyse d’emploi quels sont les avantages et inconvénients de la méthode de prise de note par les titulaires?",
+    a: "Avantages : Elle permet de répertorier les tâches au fur et à mesure et de quantifier facilement le temps consacré à chacune ; désavantages : elle exige de la minutie, est difficile à gérer et peut être négligée par les titulaires qui ne jugent pas le processus valable."
+  },
+  {
+    q: "en quoi consiste la méthode de la prise de notes comme analyse d’emploi?",
+    a: "consiste à demander au titulaire d'un poste d'indiquer les principales tâches qu'il effectue et les incidents critiques liés à l'exercice de son travail"
+  },
+  {
+    q: "pour bien comprendre la nature des tâches et des responsabilités de chacun et pour définir une nouvelle organisation du travail sur quoi la gestion des ressources humaines doit s’appuyer?",
+    a: "Sur l’analyse des emplois"
+  },
+  {
+    q: "que signifie la description d’emploi (ou description de poste)?",
+    a: "Un document qui synthétise l’information requit au fil de l’analyse de l’emploi ça se présente sous forme de texte qui décrit la nature du travail à accomplir les méthodes les conditions de travail les devoirs les responsabilités de la personne qui l’occupe"
+  },
+  {
+    q: "quels sont les principaux éléments de la description de poste?",
+    a: "1) On a les éléments incontournables, 2) les éléments le plus souvent mentionnés, 3) les éléments les moins fréquents"
+  },
+  {
+    q: "quels sont les éléments incontournables faisant partie des principaux éléments de la description de poste?",
+    a: "1) Intitulé de l’emploi (titre exact du poste) ; 2) Date de la rédaction de la description ou de son actualisation ; 3) Service d’affectation ; 4) Situation dans la structure (organigramme et relations hiérarchiques avec d’autres postes) ; 5) Mission principale (courte synthèse des principales responsabilités du poste qui permet de clarifier la raison d’être du poste dans l’entreprise) ; 6) Attributions et activités (description détaillée des tâches et des opérations) ; 7) Matériel, documents et moyens mis à disposition"
+  },
+  {
+    q: "quels sont les éléments le plus souvent mentionnés faisant partie des principaux éléments de la description de poste?",
+    a: "1) Marge d’autonomie (précision des attributions) ; 2) Profil et qualités nécessaires à l’emploi ; 3) Évolution possible."
+  },
+  {
+    q: "quelles sont les éléments les moins fréquents faisant partie des principaux éléments de la description quels sont les éléments les moins fréquents faisant partie des principaux éléments de la description de poste de poste?",
+    a: "1) Nombre de personnes pouvant occuper le même emploi ; 2) Pourcentage de temps consacré à chacune des activités ; 3) Volume approximatif des activités ; 4) Mode de contrôle par autrui (hiérarchie) ; 5) Assistance par autrui (autre que la hiérarchie)."
+  },
+  {
+    q: "quelles sont les 4 catégories/formes de structures des équipes de travail?",
+    a: "1) Les équipes de résolution de problèmes ou groupes d’amélioration, 2) , le groupe de projets de projets, 3) les équipes semi-autonomes, 4) les équipes virtuelles"
+  },
+  {
+    q: "ce qui peut varier entre les différentes catégories formes de structure des équipes de travail?",
+    a: "La structure des équipes leur mission et leur degré d’autonomie"
+  },
+  {
+    q: "quel est le mandat des groupes d’amélioration?",
+    a: "de procéder à une démarche collective de résolution de problèmes à l'aide de l'analyse de processus, du contrôle statistique des procédés, du processus de prise de décision, de la créativité ou du travail en équipe"
+  },
+  {
+    q: "qu’est-ce que le steering committee?",
+    a: "Le comité directeur composé de membres de la haute direction par lequel les groupes d’amélioration font valider et autoriser leurs recommandations Suite à la démarche collective de résolution de problèmes"
+  },
+  {
+    q: "vrai ou faux; en milieu syndiqué il est également possible d’avoir des représentants de la partie syndicale dans le comité directeur qui sert à valider et autoriser les recommandations des groupes d’amélioration?",
+    a: "Vrai mais ça fait parfois conduire à des résultats décevants car avec le temps la structure formelle et traditionnelle de l’organisation qui n’a pas évolué a mis un frein à l’implantation de masse critique d’équipes de travail elle est superviseur retournait vite en leurs anciens comportements de patrons et les dirigeants ne donnaient plus toujours suite aux mesures suggérées par leurs équipes"
+  },
+  {
+    q: "quel est le synonyme de équipe parallèle ou Off line?",
+    a: "Les groupes de projet"
+  },
+  {
+    q: "qu’est-ce que la dotation?",
+    a: "Le processus qui consiste à trouver la personne avec la qualification requise pour un emploi et grâce auquel l’organisation peut renouveler ses ressources humaines"
+  },
+  {
+    q: "qu’est-ce que le recrutement désigne comme activité?",
+    a: "Activité qui permet d’attirer des candidats de qualité"
+  },
+  {
+    q: "que désigne l’accueil dans ce cours de dotation?",
+    a: "l'ensemble des actions qui sont menées afin de faciliter chez l'employé la compréhension de son poste et de l'organisation. Cette étape d'entrée est fondamentale, car elle donne l'occasion à la nouvelle recrue de comparer ses attentes avec la réalité du quotidien, de mieux circonscrire son rôle et d'entrevoir les possibilités d'évolution ou d'investissement à moyen terme dans l'organisation. Elle favorise la socialisation, soit l'apprentissage par l'individu de son rôle dans l'organisation"
+  },
+  {
+    q: "en matière de recrutement quelles sont les responsabilités des dirigeants?",
+    a: "1) Participez à l’entrevue de sélection pour les postes comportant des responsabilités élevées, 2) participer à l’accueil de nouveaux employés pour rappeler les valeurs fondamentales"
+  },
+  {
+    q: "en matière de recrutement quelles sont les responsabilités des cadres?",
+    a: "1) Aidez à déterminer les profils de compétences requises pour les emplois, 2) participer aux entrevues de sélection, 3) procédez ou participez à la décision définitive d’embauche, 4) s’assurer de la bonne intégration des nouveaux employés (coaching, formation)"
+  },
+  {
+    q: "en matière de recrutement quelles sont les responsabilités des professionnels RH?",
+    a: "1) concevoir et appliquer la stratégie d’attraction, 2) déterminer les moyens de recrutement interne externe, 3) concevoir les outils de sélection et préparer le processus, 4) veillez à la bonne utilisation de ces outils, 5) programmer la formation d’accueil est évaluation des nouveaux employés"
+  },
+  {
+    q: "en matière de recrutement quelles sont les responsabilités des syndicats?",
+    a: "1) Négocier les clauses relatives aux promotions internes 2) participer à l’accueil et à l’intégration de nouveaux membres, 3) veillez à la pertinence des outils de sélection et à l’équipe du processus"
+  },
+  {
+    q: "en matière de recrutement quelles sont les responsabilités des employés?",
+    a: "1) restez à l’affût des possibilités de mobilité interne, 2) proposez des candidats externes, 3) participez au comité de sélection, 4) accueillir les nouveaux employés et leur prêter assistance"
+  },
+  {
+    q: "quelles sont les 3 étapes du processus pour l’entreprise qui souhaite développer sa pour l'entreprise qui souhaite développer sa marque employeur marque employeur?",
+    a: "1) déterminer et développer la position de valeur offerte à ses collaborateurs actuels et futurs, 2) communiquer la proposition de valeur pour attirer les candidats ciblés et retenir les collaborateurs compétents, 3) soignez cette promesse en étant cohérent avec le discours véhiculé par la marque employeur"
+  },
+  {
+    q: "quelle est la différence entre adéquation individu-poste Vs adéquation individu-organisation?",
+    a: "personnes ayant non seulement les qualifications techniques pour le poste (adéquation individu-poste), mais aussi une disposition personnelle à bien s'intégrer à la culture de l’entreprise (adéquation individu-organisation)"
+  },
+  {
+    q: "Expliquez ce qu’on entend par l’inadéquation entre un individu et l’organisation?",
+    a: "L’inadéquation entre l’individu et l’organisation réfère à l’incompatibilité entre les caractéristiques individuelles (attentes, besoins, valeurs) et celles de l’organisation. Pour plus d’informations, revoyez la section 4.1 Le marketing des ressources humaines"
+  },
+  {
+    q: "pourquoi est-ce qu’une approche de décision d’embauche pourrait s’avérer incomplète si par exemple un employeur cherche une personne ayant une expertise en comptabilité pour pourvoir un poste de comptable, et que serait une solution?",
+    a: "Car elle ne tient pas compte des valeurs de la personne et de leur connaissance avec la culture organisationnelle (exemple ce comptable valorise le travail d’équipe et l’engagement social alors que le milieu de travail met l’accent sur les résultats et la concurrence. Solution : adopter pour principe d’attirer des personnes qui adhèrent aux valeurs et à la mission de l’organisation"
+  },
+  {
+    q: "qu’est-ce que la théorie de l'attraction-sélection-attrition?",
+    a: "décrit un processus par lequel (a) les personnes sont attirées vers des organisations qui leur ressemblent, (b) les organisations embauchent celles qui ont des caractéristiques communes alors que (c) celles qui ne partagent pas les caractéristiques de l'organisation vont éventuellement quitter celle-ci. Cela fait en sorte que les personnes au sein d'une organisation ont souvent des caractéristiques et des comportements similaires"
+  },
+  {
+    q: "quelles sont les 3 actions qui doivent être entreprises pour dégager un profil complet des compétences et autres caractéristiques en dotation?",
+    a: "1) consultez les exigences énoncées dans la description d’emploi laquelle propose une synthèse de l’analyse de l’emploi, 2) obtenir une représentation plus complète des exigences en consultant l’information de l’étape de l’analyse de l’emploi, 3) consultez les personnes qui au sein de l’organisation connaissent l’emploi et les exigences"
+  },
+  {
+    q: "que signifie prédicteurs?",
+    a: "Les critères de sélection permettant de prévoir la capacité d’une personne à évoluer avec succès dans un poste donné"
+  },
+  {
+    q: "quelles sont les critères de sélection que l’on retrouve le plus fréquemment dans le processus de dotation?",
+    a: "-Connaissance acquise -habilité particulière ou générale -aptitudes - centres d’intérêts - et à diverses autres caractéristiques"
+  },
+  {
+    q: "qu’est ce qu’un site de recrutement généraliste?",
+    a: "Site de recrutement qui propose un affichage large regroupant un vaste éventail de métiers de formation et de régions"
+  },
+  {
+    q: "qu’est-ce qu’un site de recrutement spécialisé?",
+    a: "Cette recrutement qui propose à l’employeur et aux chercheur d’emploi une démarche plus ciblée comme par exemple le site modis offre un service de recrutement spécialisé dans le domaine des technologies de l’information par exemple"
+  },
+  {
+    q: "que signifi ‘’sourcing’’ en dotation?",
+    a: "= le repérage de candidats, c’est une méthode de recrutement souvent appliquée par les sourceurs"
+  },
+  {
+    q: "Que signifi ‘’sourceur’’?",
+    a: "c’est une profession, ils sélectionnent des profils les plus qualifiés du monde et les présente aux entreprises, eux vont proactivement vers la qualification incroyable qu’une autre entreprise de recrutement qui n’est pas sourcing (agence de placement) et présentes ces candidats hautement qualifiés aux entreprises (exemple linkedin, google, microsoft, Gates, etc)"
+  },
+  {
+    q: "en quoi se spécialisent les agences de placement privées VS publiques?",
+    a: "La mission des agences de placement public consiste à afficher gratuitement des offres d’emploi tandis qu’au privé tu peux trouver pt + la perle rare ou si tu as besoin de quelque chose de spécifique, ou par manque de temps."
+  },
+  {
+    q: "ce qu’il faut prendre en compte lorsqu’il est rendu le moment de choisir une méthode de recrutement?",
+    a: "1) historique d’expérience de différentes méthodes essayées par l’entreprise, 2) type de poste à combler, 3) politique de recrutement de l’entreprise, 4) conditions du marché de l’emploi, 5) contrainte de temps et d’argent"
+  },
+  {
+    q: "nomme des instruments de sélection permettant de procéder à la collecte de l’information portant sur les critères de sélection?",
+    a: "validité, la fidélité (ou fiabilité), l'utilité et la légalité de chaque instrument"
+  },
+  {
+    q: "que signifie la validité d’un instrument?",
+    a: "exprime la force de la relation entre ce que cet instrument prédit et la performance dans l'emploi."
+  },
+  {
+    q: "quelles sont les 3 différents type de validités?",
+    a: "Validité de contenu, validité concominante et validité prédictive"
+  },
+  {
+    q: "qu’est-ce que la validité de contenu?",
+    a: "La validité de contenu porte sur la cohérence entre l'instrument de sélection et les critères définis. Par exemple, un test de raisonnement qui mesure l'aptitude à traduire en symboles mathématiques des problèmes simples, ça peut convenir au métier mais pas nécessairement à la sélection d’un représentant médical autrement dit l’instrument de sélection doit refléter les exigences du poste et les critères de sélection"
+  },
+  {
+    q: "qu’est-ce que la validité concomitante?",
+    a: "Elle renvoie à la relation entre l’instrument de sélection et la réussite professionnelle pendant une même période on peut ainsi examiner la relation statistique entre les résultats obtenus lors d’un test de raisonnement et le rendement actuel des employés qui occupent les postes en informatique dans le même intervalle si les employés qui obtiennent les meilleurs résultats aux tests de raisonnement sont également ceux qui offrent le meilleur rendement au travail on peut en conclure que la validité concomitante du test est élevé"
+  },
+  {
+    q: "qu’est-ce que la validité prédictive?",
+    a: "La validité prédictive étudie le lien entre ce que prédit l'instrument de sélection au cours de l'évaluation des candidatures et la réussite professionnelle future dans l'emploi. Par exemple, si les candidats ayant obtenu les meilleurs résultats lors d'un test de raisonne ment sont, quelques mois après leur embauche, parmi les meilleurs informaticiens, le test aura prouvé sa validité predictive"
+  },
+  {
+    q: "qu’est-ce que l’article 1 du droit à l’intégrité de la personne?",
+    a: "Kk1 peut refuser de passer un test"
+  },
+  {
+    q: "qu’est-ce que l’article 5 droit au respect de la vie privé?",
+    a: "Doit demander juste ce dont ils ont besoin ou ce que la personne nous demande, le reste non"
+  },
+  {
+    q: "qu’est-ce que l’article 10 concept de discrimination et motifs de discrimination interdits?",
+    a: "Motif qui détruit doit personne (origine ethnique, sexe, handicap, wathever)"
+  },
+  {
+    q: "qu’est-ce que le formulaire d’emploi?",
+    a: "Doc rédigé par l’employeur, permet d’obtenir des renseignements, ça aide à préselectionner, c’est souvent formulaire en ligne que le candidat doit remplir en appliquant sur le site de l’employeur."
+  },
+  {
+    q: "Situation vécue, est-ce une question comportementale ou une question de mise en situation?",
+    a: "Comportementale"
+  },
+  {
+    q: "Se terminer par ‘’qu’avez-vous fait’’, est-ce une question comportementale ou une question de mise en situation?",
+    a: "Comportementale"
+  },
+  {
+    q: "situation fictive, est-ce une question comportementale ou une question de mise en situation?",
+    a: "Mise en situation"
+  },
+  {
+    q: "orientée vers le passé, est-ce une question comportementale ou une question de mise en situation?",
+    a: "Comportementale"
+  },
+  {
+    q: "orientée vers l’avenir et situation fictive, est-ce une question comportementale ou une question de mise en situation?",
+    a: "Mise en situation"
+  },
+  {
+    q: "Évoque des comportements dans une situation précise, est-ce une question comportementale ou une question de  mise en situation?",
+    a: "Mise en situation"
+  },
+  {
+    q: "Évoque des comportements démontrés dans une variété de situations, est-ce une question comportementale ou une question de  mise en situation?",
+    a: "Comportementale"
+  },
+  {
+    q: "Nomme les 4 tests de sélection qu’on voit dans le cours?",
+    a: "Test d’aptitude, test de personnalité, test situationnel, autres tests"
+  },
+  {
+    q: "nomme 3 tests d’aptitudes?",
+    a: "1) Test d’aptitude cognitive (binet, raven, test des dominos), 2) test d’aptitude pratique :mécaniques (bennett, mcquarrie, wiesen, rapidité Evanati, 3)  test d’aptitude cognitive et pratique (BGTA)"
+  },
+  {
+    q: "nomme 3 test de personnalité?",
+    a: "1) Test de style de leadership ou d’amabilité de direction et de quotient émotionnel, 2) inventaire de personnalité (big five, cattell, gordon, guilford-zimmerman, PAPI), 3) inventaire d’intérêts professionnels (edwards, strong, holland, kuder)"
+  },
+  {
+    q: "nomme 4 tests situationnels?",
+    a: "- Épreuve du courrier - simulation de gestion - jeux de rôle - discussion de groupe"
+  },
+  {
+    q: "nomme 4 autres tests?",
+    a: "Graphologie, test d’honnêteté, examen médical, dépistage des drogues"
+  },
+  {
+    q: "qu’est-ce que l’exercice du courrier (in-basket ou corbeille d’entrée)?",
+    a: "Un test situationnel reconnu pour sa validité et sa pertinence en milieu organisationnel le candidat doit être traité le cas qui lui est soumis et c’est forcé de prendre les meilleures décisions contenues des renseignements qui lui sont fournis il peut s’agir par exemple de régler certaines affaires courantes comme rédiger des notes de service planifier des réunions etc"
+  },
+  {
+    q: "qu’est-ce qu’un test de graphologie?",
+    a: "Un test qui analyse l’écriture et qui essaie de donner un niveau d’intelligence selon comment la personne écrit ce n’est pas fiable comme test"
+  },
+  {
+    q: "nomme différentes approches de prise de décision qui s’appliquent à la sélection du personnel?",
+    a: "1) L'une d'elles consiste à combiner les résultats de toutes les épreuves en fonction d'une pondération décidée d'avance. 2) Une autre approche consiste à établir des seuils pour chaque épreuve, puis de combiner les résultats des personnes qui ont atteint le seuil à chacune des épreuves. 3) la correspondance des profils, on évalue des individus ayant une bonne performance dans l'organisation et on recherche les mêmes résultats chez les candidats."
+  },
+  {
+    q: "Que signifi ‘’ développer un vivier de ta lents’’?",
+    a: "talent pipeline"
+  },
+  {
+    q: "L’information à transmettre dès la 1ère journée?",
+    a: "1) La stratégie et la mission de l’organisation ; 2) L’organigramme de l’organisation ; 3) Les modalités de versement des salaires ; 4) Les avantages sociaux ; 5) Le fonctionnement de l’ordinateur et de la messagerie vocale ; 6) Le stationnement et le protocole de sécurité ; 7) Les contacts en cas d’urgence ; 8) Le plan d’évacuation en cas de désastre ; 9) La description d’emploi ; 10) Le bottin et la liste des personnes à appeler pour obtenir des réponses à différentes questions ; 11) Le manuel de l’employé ; 12) Les principaux services à proximité du lieu de travail ; 13) L’endroit où se trouvent le photocopieur, les fournitures, etc. ; 14) Les procédures de santé et de sécurité du travail."
+  },
+  {
+    q: "Définissez, dans vos mots, ce qu’est la marque employeur, puis discutez de son importance à l’étape du recrutement?",
+    a: "La marque employeur représente l'image et la réputation d'une organisation en tant qu'employeur, communiquées à l'interne et à l'externe. Elle vise à influencer positivement la perception des employés actuels, des candidats potentiels et des parties prenantes. Elle repose sur trois types de bénéfices : fonctionnels (conditions de travail), économiques (salaire et avantages) et psychologiques (expérience employé, reconnaissance et valeurs). Au recrutement, elle permet de promouvoir l'organisation, de se démarquer et d'attirer des candidats dont le profil et les valeurs correspondent à son identité."
+  },
+  {
+    q: "Quelle théorie permet de comprendre pourquoi les personnes travaillant dans une même organisation ont souvent des caractéristiques et des comportements similaires?",
+    a: "La théorie que l’on nomme « attraction-sélection-attrition » décrit un processus par lequel les individus sont attirés vers des organisations qui leur ressemblent, les organisations embauchent des personnes qui ont des caractéristiques communes et les individus qui ne partagent pas les caractéristiques de l’organisation vont éventuellement quitter celle-ci"
+  },
+  {
+    q: "Quels avantages associe-t-on à l’utilisation des médias sociaux à des fins de recrutement?",
+    a: "L’utilisation des médias sociaux donne à l’employeur une visibilité et lui permet de rejoindre des communautés d’internautes qui, autrement, seraient difficiles d’accès, et même d’intéresser des personnes qui ne recherchent pas activement un emploi. Les réseaux sociaux représentent une option peu coûteuse qui favorise un échange d’information avec des candidats potentiels plus ou moins nombreux, mais hautement qualifiés. Ils permettent à l’organisation d’être présente là où les jeunes observent ce qui se passe. Les entreprises doivent toutefois être conscientes des ressources qu’une présence en ligne exige et des revers qui peuvent y être associés"
+  },
+  {
+    q: "Quels sont les principaux indicateurs de performance qui permettent d’évaluer l’efficacité d’une méthode de recrutement?",
+    a: "1)le nombre de candidatures reçues; 2)le pourcentage de candidatures démontrant une adéquation entre les compétences du candidat et les exigences du poste; 3)le pourcentage de candidatures démontrant une adéquation entre les profils des personnes et les exigences du poste; 4)les délais requis pour recruter; les coûts engendrés pour recruter; 5)le rendement des personnes recrutées au cours des 6 à 12 mois qui suivent leur embauche; 6)la rétention des personnes recrutées au bout de 6 à 12 mois"
+  },
+  {
+    q: "que pourrait faire une entreprise qui souffre d’une mauvaise réputation dans son secteur d’activité pour attirer des candidats?",
+    a: "entreprise peut valoriser le secteur d’activité par des actions promotionnelles : publicités, dépliants distribués dans les agences de placement et les établissements d’enseignement, conférences sur le secteur et les emplois, etc. De plus, elle peut se distinguer au sein de son secteur en projetant l’image d’une organisation remarquable"
+  },
+  {
+    q: "que peut faire une PME ayant des ressources financières limitées pour attirer de bons candidats?",
+    a: "a) attirer de bons candidats en mettant de l'avant les avantages humains de travailler dans une petite entreprise, plutôt que d'essayer de rivaliser avec les grandes entreprises sur le plan salarial; b) entretenir une bonne relation avec les établissements d’enseignement et de formation en participant aux salons de l’emploi, aux forums, en donnant des conférences, en offrant des stages, en organisant des journées portes ouvertes; c) se faire reconnaître en tant qu’employeur de choix (articles dans la presse locale ou régionale, présentation auprès des ordres professionnels et des agences de placement); d) miser sur l’engagement des employés : recommandations, primes à la recommandation, réseautage"
+  },
+  {
+    q: "définition Esprit de corps?",
+    a: "les employés travaillent en équipe et s'entraident"
+  },
+  {
+    q: "définition Proximité de la direction?",
+    a: "les employés peuvent facilement parler aux dirigeants et se sentir écoutés"
+  },
+  {
+    q: "Légèreté des structures?",
+    a: "moins de bureaucratie, moins de niveaux hiérarchiques et des décisions souvent plus rapides"
+  },
+  {
+    q: "En matière de dotation, qu’est-ce qu’un outil de sélection « fiable »?",
+    a: "La fiabilité exprime le degré de constance ou de stabilité des résultats d’une mesure. Un outil de sélection est donc considéré fiable s’il donne le même résultat à chaque fois qu’on y recourt dans les mêmes conditions. Par exemple, on peut vérifier la fiabilité d’un test de personnalité en le faisant passer à un même groupe de sujets à deux moments différents, de manière à analyser sa stabilité temporelle"
+  },
+  {
+    q: "Définissez d’abord ce qu’est le marketing des RH, puis expliquez si, à votre avis, il s’agit d’une mode ou d’une évolution qui influence les pratiques en profondeur au sein des organisations?",
+    a: "1) Le marketing des RH consiste à appliquer les stratégies du marketing à la gestion des ressources humaines afin d'attirer, recruter et fidéliser les talents. Il permet à l'organisation de se positionner comme employeur et de communiquer clairement sa marque employeur auprès des candidats potentiels. 2)Mode ou évolution? Il s'agit davantage d'une évolution profonde que d'une simple mode, puisqu'il rapproche le marketing et les RH, favorise une meilleure cohérence organisationnelle et permet une communication unifiée pour attirer et gérer les talents."
+  },
+  {
+    q: "Que signifie la marque employeur?",
+    a: "La marque employeur sert à solidifier le positionnement de l’organisation sur le marché de l’emploi"
+  },
+  {
+    q: "quelles sont les étapes de sélection du personnel?",
+    a: "1)La présélection (analyse des demandes d’emploi, analyse des CV, entretien de validation), 2) l’entrevue de sélection, 3) les tests de sélection (d’aptitudes, de personnalité, situationnels, &autres), 4) vérification des références, 5)décision d’embauche, 6)l’examen médical"
+  },
+  {
+    q: "Définition de critères d’évaluation de la performance?",
+    a: "Caractéristiques qui permettent de porter un jugement sur la contribution ou la performance d’une personne ou d’un groupe au travail."
+  },
+  {
+    q: "Définition de l’évaluation du rendement?",
+    a: "Système structurel et formel visant à mesurer, à évaluer et à modifier les caractéristiques, les comportements et les résultats d’un employé occupant un poste donné."
+  },
+  {
+    q: "Définition de la gestion par objectifs?",
+    a: "Processus de gestion de la performance qui établit d’abord des objectifs d’affaires, ensuite des objectifs par unité d’exploitation, et enfin des objectifs pour chaque employé."
+  },
+  {
+    q: "Définition de la performance?",
+    a: "Ensemble des contributions fournies par une ou plusieurs personnes dans leur travail au cours d’une période (comportements, résultats, etc.)."
+  },
+  {
+    q: "Définition du programme d’aide aux employés?",
+    a: "Ensemble d’interventions visant à aider les personnes aux prises avec des problèmes personnels qui compromettent ou qui sont susceptibles de compromettre leur santé, leur équilibre psychologique et leur rendement au travail."
+  },
+  {
+    q: "Définition du programme de gestion de la performance?",
+    a: "Ensemble des activités de planification, de direction, de suivi, de contrôle, de développement et de reconnaissance visant à optimiser les contributions des personnes au travail."
+  },
+  {
+    q: "Définition du potentiel?",
+    a: "Hypothèse plus ou moins fondée par l’observation et l’extrapolation portant sur les ressources de toute nature encore non exploitées d’un individu et sur l’ampleur de leur développement éventuel dans le temps."
+  },
+  {
+    q: "Définition de la sous-performance?",
+    a: "Ensemble des problèmes individuels, interpersonnels ou collectifs, en ce qui touche aux attitudes, aux compétences et aux comportements, qui nuisent à divers indicateurs de performance et de bien-être au travail."
+  },
+  {
+    q: "la performance repose sur trois principaux piliers, lesquels?",
+    a: "1) Aligner les objectifs (attentes) individuels sur les priorités organisationnelles en encourageant les individus à adhérer à la culture et à la vision de l’entreprise et, ainsi, à s’engager. 2) Créer des espaces de discussion où les attentes peuvent être exprimées et transformées en des engagements de performance suivant des critères définis, explicites et cohérents quant aux rôles et responsabilités, aux tâches à accomplir, aux compétences nécessaires à leur réalisation et aux comportements souhaités. 3) Offrir la possibilité aux employés d’identifier leurs propres buts professionnels et de montrer que leur contribution a une valeur, et les aider à développer leurs compétences."
+  },
+  {
+    q: "quelles sont les 4 étapes de la gestion de la performance?",
+    a: "la définition des attentes, le soutien de la performance, l’évaluaton de la performance et la reconnaissance et le dévrloppement"
+  },
+  {
+    q: "Quelles sont les responsabilités des évaluateurs?",
+    a: "Créer des conditions de travail motivantes et reconnaître les progrès, observer et documenter le rendement, fournir une rétroaction et agir comme un coach, réviser les critères de rendement lorsque les conditions de travail changent et fournir des expériences de développement."
+  },
+  {
+    q: "Quelles sont les responsabilités des employés évalués?",
+    a: "S’engager dans l’atteinte des objectifs, solliciter une rétroaction et un suivi en matière de rendement, communiquer régulièrement avec leur superviseur, colliger et partager l’information sur le rendement et se préparer pour les entretiens de rendement."
+  },
+  {
+    q: "quels sont les 2 grands types de performance?",
+    a: "D’abord, il y a celle correspondant à la réalisation de la tâche, qui sera observable et mesurable à l’aide d’indicateurs de performance individuels, des niveaux de responsabilités de chacun ou encore des objectifs fixés à une équipe. Ensuite, il y a la performance dite contextuelle ou liée aux comportements citoyens au sein de l’organisation. Ce type de performance connaît actuellement un essor dans la littérature scientifique, dans les études s’intéressant à l’évaluation professionnelle et à l’efficacité organisationnelle"
+  },
+  {
+    q: "Quelles sont les actions à privilégier lors de l’implantation d’un processus de gestion de la performance?",
+    a: "Consulter et impliquer, communiquer les attentes et les objectifs, obtenir l’appui des cadres de premier niveau, planifier et préparer rigoureusement, aligner le système de gestion de la performance sur la culture organisationnelle et garder le processus simple."
+  },
+  {
+    q: "Quelles sont les actions à éviter lors de l’implantation d’un processus de gestion de la performance?",
+    a: "Être à la course pour implanter un nouveau processus de gestion de la performance, faire des changements continuellement, sous-estimer le temps de mise en place du processus, présumer que les acteurs de l’entreprise ont les compétences adéquates, négliger la communication, la formation et la consultation et suivre aveuglément les autres membres de l’organisation sans poser de question."
+  },
+  {
+    q: "synonyme de « gestion de la performance »?",
+    a: "« gestion du rendement»"
+  },
+  {
+    q: "Comment maximiser la motivation et le rendement des employés?",
+    a: "En mettant l'employé au cœur du processus, en reconnaissant ses forces, en établissant des priorités essentielles, en favorisant la collaboration et le travail d'équipe, en offrant du feedback continu, des possibilités de développement et les outils nécessaires pour accomplir ses tâches."
+  },
+  {
+    q: "Quelle est l’importance de bien gérer la performance pour les organisations?",
+    a: "Améliorer la performance et la compétitivité de l’organisation, faciliter l’attraction et la rétention du personnel, appuyer l’amélioration continue et le développement organisationnel, promouvoir les valeurs et ainsi influencer les comportements au travail et procurer des renseignements utiles à d’autres activités de CRH."
+  },
+  {
+    q: "Quelle est l’importance de bien gérer la performance pour les professionnels RH?",
+    a: "Valider la qualité des décisions de dotation et de formation, déterminer les besoins de formation, faciliter la planification des effectifs et la gestion de la relève, favoriser l’équité des décisions en matière de rémunération variable et à l’égard des cas de sous-performance."
+  },
+  {
+    q: "Quelle est l’importance de bien gérer la performance pour les employés évalués?",
+    a: "Mieux comprendre l’importance et la valeur de leur travail, savoir ce que l’on attend d’eux et connaître les priorités et les critères d’évaluation, faciliter leur participation et l’expression de leurs idées, de leurs besoins et de leurs préoccupations, communiquer leurs attentes en matière de développement et de carrière et favoriser la reconnaissance de leurs contributions ainsi que l’obtention d’une relation d’aide au besoin."
+  },
+  {
+    q: "Quelle est l’importance de bien gérer la performance pour les cadres évaluateurs?",
+    a: "Justifier les décisions et les actions à l’égard des membres de leur équipe, mieux conseiller et appuyer les employés au quotidien, favoriser la motivation, le développement et le cheminement de carrière du personnel, mieux communiquer les attentes et exercer un suivi sur le travail, mieux déterminer, utiliser et reconnaître les forces de tout un chacun et être mieux formés et appuyés dans la gestion de sous-performance."
+  },
+  {
+    q: "Quelles sont les responsabilités des dirigeants en matière de gestion de la performance?",
+    a: "Déterminer les valeurs, la stratégie et les objectifs qui orientent la gestion de la performance, appuyer la gestion de la performance en y accordant les ressources requises, évaluer et reconnaître les cadres sur la qualité avec laquelle ils gèrent les performances, tenir compte des évaluations faites par les cadres lors des décisions de gestion et déployer une culture favorable à la performance où ils donnent l’exemple."
+  },
+  {
+    q: "Quelles sont les responsabilités des cadres en matière de gestion de la performance?",
+    a: "Gérer la performance de leurs subordonnés au quotidien en accord avec le programme et les politiques de l’entreprise, participer à l’élaboration, à la gestion, à l’application et à la révision des programmes de gestion de la performance et intervenir adéquatement dans la gestion des cas de sous-performance."
+  },
+  {
+    q: "Quelles sont les responsabilités des professionnels RH en matière de gestion de la performance?",
+    a: "Concevoir, implanter, gérer et réviser des programmes, des politiques et des règles de gestion de la performance efficients, simples et alignés sur les valeurs et les objectifs d’affaires, former, conseiller, faire participer et appuyer le personnel au regard de la gestion de la performance et s’assurer que la performance est gérée de manière équitable dans le respect des lois, des règles, des conventions, des politiques, des principes disciplinaires, etc."
+  },
+  {
+    q: "Quelles sont les responsabilités des syndicats en matière de gestion de la performance?",
+    a: "Participer au développement des politiques et des règles à respecter en matière de gestion des performances qui font l’objet de la convention collective, s’assurer que le processus de gestion de la performance respecte la convention collective et, sinon, défendre les membres en déposant des griefs et assumer, avec l’employeur, ses responsabilités en matière de gestion des accommodements."
+  },
+  {
+    q: "Quelles sont les responsabilités des employés en matière de gestion de la performance?",
+    a: "S’engager dans toutes les étapes du programme de gestion en sollicitant de la rétroaction, en proposant des objectifs, etc., et agir conformément au programme, aux politiques et aux codes de conduite de leur employeur en matière de gestion des performances au travail."
+  },
+  {
+    q: "quel est le but global d'un programme de gestion de la performance?",
+    a: "consiste à améliorer les contri butions au travail de la très grande proportion du personnel visé (soit 90%) dont la per formance s'avère à tout le moins acceptable. C'est d'ailleurs auprès de cette majorité du personnel qu'une amélioration des performances individuelles aura un effet important sur la performance organisationnelle. Cette proportion «typique» du personnel visé exclut une minorité des employés - environ 10% - dont la performance est soit exceptionnelle (5 %) ou problématique (5 %)"
+  },
+  {
+    q: "Quels sont les objectifs d’un programme de gestion de la performance?",
+    a: "Inciter le personnel à adopter des attitudes et des comportements contribuant à l’atteinte des objectifs organisationnels et à la réalisation de la stratégie d’affaires, mieux reconnaître ou rémunérer les performances individuelles et collectives, améliorer le lien entre les performances individuelles et la performance organisationnelle, favoriser la communication et les échanges sur la mission, la vision, les objectifs, les valeurs et les orientations stratégiques de l’organisation, améliorer la performance de l’organisation selon différents indicateurs (qualité des services et des produits, quantité produite, service à la clientèle), faciliter le recrutement et la fidélisation des meilleurs employés, orienter la formation, le développement et le perfectionnement du personnel et instaurer une culture d’amélioration continue favorable au développement de l’organisation."
+  },
+  {
+    q: "Définition de la théorie de la relation d’encadrement (LMX – Leader-Member Exchange)?",
+    a: "Théorie qui vise à comprendre le rôle du leadership sur les employés, les équipes et l’organisation, selon laquelle les leaders entretiennent des relations étroites, de confiance et respectueuses avec certains membres de leur équipe, mais pas avec d’autres, puisque les subordonnés ne sont pas tous traités de la même façon, ce qui influence leurs attitudes et comportements au travail (satisfaction, motivation, engagement, comportement de bon citoyen et intention de quitter leur emploi) selon la qualité de leur relation d’échange avec leur superviseur (informations, ressources, appui, etc.)."
+  },
+  {
+    q: "comment pourrait-il être possible de renforcer l'engagement et la motivation par des modes de reconnaissance autres que la rémunération?",
+    a: "les employés sont motivés à améliorer leur rendement dans la mesure où ils ont l'impression que leurs efforts ont un effet sur celui-ci, qu'il existe un lien entre leur rendement et les récompenses (la reconnaissance) et que les récompenses qu'ils obtiennent ont une valeur à leurs yeux. La reconnaissance quotidienne est une bonne option."
+  },
+  {
+    q: "quelles sont les 7 variétés de formes de reconnaissance envers le personnel?",
+    a: "Communication, comportements, symboles honorifiques, visibilité, biens services et primes ponctuelles, conditions de travail, rémunération variable"
+  },
+  {
+    q: "Quelle est la reconnaissance par la communication?",
+    a: "Féliciter, remercier ou encourager les employés en personne, au téléphone ou par écrit (courriel, note)."
+  },
+  {
+    q: "Quelle est la reconnaissance par les comportements?",
+    a: "Serrer la main ou sourire, se montrer prêt à aider, communiquer une information privilégiée, demander un avis sur un projet, agir comme un mentor, manifester du plaisir à travailler avec un employé, lui témoigner de l’empathie ou de l’intérêt et le traiter avec respect."
+  },
+  {
+    q: "Quelle est la reconnaissance par les symboles honorifiques?",
+    a: "Décerner des trophées, des prix, des titres, des diplômes honorifiques, des plaques murales, des certificats et des œuvres d’art (sculptures, peintures, sérigraphies)."
+  },
+  {
+    q: "Quelle est la reconnaissance par la visibilité?",
+    a: "Féliciter un employé devant ses pairs, souligner des réalisations particulières au cours d’une réunion ou dans le journal interne ou externe de l’organisation, joindre à son dossier une lettre de reconnaissance ou proposer à un employé de faire une présentation sur une pratique professionnelle."
+  },
+  {
+    q: "Quelle est la reconnaissance par les biens, services et primes ponctuelles?",
+    a: "Accorder des objets ou des cadeaux (chandails, montres, bijoux, etc.), des services, des montants forfaitaires, des prises en charge de frais (repas, voyages, sorties, etc.), des billets pour des événements culturels ou sportifs, des prix en argent, une place de stationnement ou un accès à un matériel de bureau privilégié."
+  },
+  {
+    q: "Quelle est la reconnaissance par les conditions de travail?",
+    a: "Attribuer à l’employé une responsabilité supplémentaire ou lui offrir la possibilité d’avoir un horaire flexible, le choix du quart de travail, l’accès à une formation, la participation à une conférence ou à un colloque, des congés supplémentaires ou une promotion."
+  },
+  {
+    q: "Quelle est la reconnaissance par la rémunération variable?",
+    a: "Adopter des programmes individuels et collectifs de rémunération variable, comme les salaires ou les primes au mérite, les commissions, la participation aux bénéfices et à la propriété ou le partage des gains."
+  },
+  {
+    q: "Critères d'évaluation de la performance définition?",
+    a: "Caractéristiques qui permettent de porter un jugement sur la contribution ou la performance d'une personne ou d'un groupe au travail."
+  },
+  {
+    q: "Dans quels cas est-il préférable pour les cadres d’évaluer les comportements des employés plutôt que les résultats?",
+    a: "Lorsque les résultats sont difficiles à déterminer et à mesurer à court terme, lorsque la contribution individuelle est difficile à mesurer en raison du travail collaboratif, lorsque le respect des valeurs organisationnelles et des façons de se comporter est important et lorsque le travail comprend davantage de tâches et d’activités quotidiennes que de projets."
+  },
+  {
+    q: "Quels sont les avantages des critères comportementaux?",
+    a: "Déterminer la « bonne » manière de faire son travail, refléter les valeurs de l’organisation, offrir une rétroaction claire et précise de la performance, favoriser le développement en offrant une rétroaction sur les comportements à changer ou à adopter, faciliter la compréhension et l’acceptation par les évaluateurs et les personnes évaluées, réduire l’ambiguïté, la subjectivité, les problèmes d’interprétation, de partialité et de généralisation abusive, et être ainsi prônés par les tribunaux."
+  },
+  {
+    q: "Quels sont les avantages de considérer les résultats comme des objectifs ou des standards (la fin)?",
+    a: "Reposer sur des critères individualisés et flexibles (difficiles à comparer), prescrire des buts à atteindre et communiquer les priorités afin d’orienter les efforts."
+  },
+  {
+    q: "Quels sont les avantages de considérer les comportements ou les compétences observables (les moyens)?",
+    a: "Reposer sur des critères normalisés et invariables (faciles à comparer), prescrire des moyens à adopter et communiquer les valeurs afin de favoriser la socialisation et la formation."
+  },
+  {
+    q: "Quelle est la différence entre la performance de l’employé et le potentiel de l’employé?",
+    a: "\\*\\*La performance de l’employé\\*\\* porte sur le passé immédiat et juge les contributions au travail dans son poste actuel, en tenant compte des résultats, des comportements, des compétences observables et des responsabilités assumées; elle sert aux décisions de gestion de la performance (suivi, reconnaissance, rémunération variable, formation, counselling et discipline). \\*\\*Le potentiel de l’employé\\*\\* porte sur le futur plus ou moins lointain et juge sa capacité à assumer avec succès un éventuel poste comportant des responsabilités différentes ou supérieures à celles de son poste actuel; il sert aux décisions de sélection et de carrière, en tenant compte des aptitudes, des traits de personnalité et de la performance dans des postes antérieurs semblables."
+  },
+  {
+    q: "qu’est-ce que la Gestion par objectifs?",
+    a: "Processus de gestion de la performance qui établit d'abord des objectifs d'affaires, ensuite des objectifs par unité d'exploitation, et enfin des objectifs pour chaque employé."
+  },
+  {
+    q: "Quels sont les avantages et les limites de la gestion par objectifs?",
+    a: "\\*\\*Avantages :\\*\\* Elle est simple et facile à expliquer, orientée vers l’avenir, peut être utilisée pour toutes les catégories de personnel, individualise l’évaluation de la performance, lie la gestion de la performance aux objectifs d’affaires et communique les priorités. \\*\\*Limites :\\*\\* Elle risque de privilégier les objectifs de quantité à court terme (comme les ventes) au détriment de ceux de qualité et à long terme (développement de marché, service), d’établir des objectifs trop facilement atteignables afin de maximiser les chances de les atteindre ou de les dépasser, d’inciter à adopter des moyens ou des comportements dysfonctionnels pour atteindre les objectifs (non-respect des règles de sécurité ou dépassement des objectifs) et d’alimenter l’esprit de compétition."
+  },
+  {
+    q: "Qu’est-ce que l'échelle de notation?",
+    a: "consiste à demander à !'évaluateur d'apprécier la manifestation ou l'atteinte d'un critère de performance (souvent un comportement, un trait de personnalité, une activité, etc.). Dans la plupart des cas, cette méthode consiste en une liste d'énoncés sur lesquels !'évaluateur doit porter un jugement en fonction d'échelles dont le format peut varier considérablement (voir l'encadré 5.2). Par exemple, l'échelle peut aller de « insatisfaisant» (1) à «excellent» (5) ; de «toujours» (1) à «jamais» (4) ; de «moins de 200/o» à «plus de 1000/o de l'objectif atteint», de «au-delà des attentes» à «en deçà des attentes». Au Canada, 56% des organisations évaluent la performance de leur personnel selon une échelle à 5 niveaux, 22 0/o selon une échelle à 4 niveaux, et 15 %, selon une échelle à 3 niveaux. Pour qu'ils soient adéquats, les énoncés comportementaux doivent être en quantité suffisante. Toutefois, s'ils s'avèrent trop nombreux, ils risquent de présenter des redondances. Autant que possible, chaque énoncé doit correspondre à un seul comportement ou à un seul élément à évaluer"
+  },
+  {
+    q: "qu’est-ce qu’une méthode ouverte?",
+    a: "Lorsque les formulaires d'évaluation de la performance comportent des espaces «ouverts» que les évaluateurs peuvent remplir pour expliquer et illustrer leur appréciation."
+  },
+  {
+    q: "quelle méthode est aussi adoptée par bien des cadres soucieux de prendre des notes au quotidien afin de ne pas oublier certains faits et de mieux illustrer les points forts et les points faibles d'un employé lors d'un entretien?",
+    a: "Méthode des incidents critiques"
+  },
+  {
+    q: "nomme un synonyme de la méthode de distribution forcée?",
+    a: "méthode du rangement « forcé»"
+  },
+  {
+    q: "définition de Distribution recommandée?",
+    a: "Cotes de performance selon une certaine distribution : le pourcentage de personnes se voyant attribuer chacune des cotes est préétabli, souvent selon une courbe normale."
+  },
+  {
+    q: "définition de Séance de calibrage (gradin)?",
+    a: "Séances au cours desquelles des gestionnaires échangent afin de favoriser une certaine cohérence ou équité dans leur interprétation, leur attribution et leur distribution des cotes de performance ainsi que dans l'octroi des récompenses accordées aux employés (par exemple, primes, promo tions)."
+  },
+  {
+    q: "Quels sont les différents types de données de l’algorithme?",
+    a: "\\*\\*Données entrantes :\\*\\* informations sur les travailleurs (nombre de courses, historique de l’entretien du véhicule, évaluation par les clients) et informations générales (météo, conditions du trafic). \\*\\*Données sortantes :\\*\\* techniques d’intelligence artificielle, comme l’apprentissage automatique."
+  },
+  {
+    q: "Quels sont les types de biais pouvant influencer les cotes d’évaluation de la performance?",
+    a: "1) Biais de l’information récente. 2) Première impression. 3) Effet de halo. 4) Effet de miroir ou erreur de similarité. 5) Négativisme. 6) Clémence (sévérité). 7) Erreur de la tendance centrale. 8) Erreur de stéréotype."
+  },
+  {
+    q: "Définition du biais de l’information récente pouvant influencer les cotes d’évaluation de la performance?",
+    a: "Tendance à évaluer la performance en tenant compte davantage des événements récents, qu’ils soient positifs ou négatifs."
+  },
+  {
+    q: "Définition du biais de première impression pouvant influencer les cotes d’évaluation de la performance?",
+    a: "Biais lié à la prégnance d’une sensation immédiate face à une personne qui déteint sur la cote d’évaluation octroyée, sans égard à sa performance réelle."
+  },
+  {
+    q: "Définition de l’effet de halo pouvant influencer les cotes d’évaluation de la performance?",
+    a: "Opinion globale de la performance d’une personne en s’appuyant uniquement sur un aspect de sa performance."
+  },
+  {
+    q: "Définition de l’effet de miroir ou erreur de similarité pouvant influencer les cotes d’évaluation de la performance?",
+    a: "Tendance à évaluer favorablement les personnes qui nous ressemblent et qui agissent comme nous."
+  },
+  {
+    q: "Définition du négativisme pouvant influencer les cotes d’évaluation de la performance?",
+    a: "Importance plus grande accordée aux erreurs et aux problèmes de performance d’une personne qu’à ses succès ou à ses exploits."
+  },
+  {
+    q: "Définition de la clémence (sévérité) pouvant influencer les cotes d’évaluation de la performance?",
+    a: "Tendance à surévaluer (sous-évaluer) la performance des personnes évaluées."
+  },
+  {
+    q: "Définition de l’erreur de la tendance centrale pouvant influencer les cotes d’évaluation de la performance?",
+    a: "Propension à donner une cote autour de la moyenne."
+  },
+  {
+    q: "Définition de l’erreur de stéréotype pouvant influencer les cotes d’évaluation de la performance?",
+    a: "Évaluation de la performance d’un employé sur la base de préjugés attribués à son appartenance à un groupe (par exemple, sexe, nationalité, race, religion)."
+  },
+  {
+    q: "\\*\\*\\* Quels sont les différents types de cas de sous-performance?",
+    a: "1) Problèmes personnels. 2) Performance insuffisante. 3) Nuisances à la production. 4) Problèmes interpersonnels. 5) Non-respect des politiques organisationnelles. 6) Problèmes de loyauté ou abus envers la propriété de l’organisation."
+  },
+  {
+    q: "Définition des problèmes personnels en matière de sous-performance?",
+    a: "Consommation de substances (alcool, drogues, etc.), manque d’hygiène personnelle, problèmes de personnalité, incompétence, incapacité physique ou psychologique, manque d’habiletés et de connaissances, perte du permis de conduire, etc."
+  },
+  {
+    q: "Définition de la performance insuffisante en matière de sous-performance?",
+    a: "Mauvaise qualité, quantité insuffisante, erreurs, rendement insatisfaisant, rythme trop lent, rejets, etc."
+  },
+  {
+    q: "Définition des nuisances à la production en matière de sous-performance?",
+    a: "Retards et absences non justifiés, départs hâtifs, non-respect du temps (pause, repas), présentéisme, refus de collaborer, paresse, flânerie, négligence, manque de disponibilité, utilisation inadéquate de l’équipement, non-participation aux réunions, refus de s’adapter ou d’exécuter un travail, etc."
+  },
+  {
+    q: "Définition des problèmes interpersonnels en matière de sous-performance?",
+    a: "Manque de respect ou de civilité, insubordination, insultes, menaces, contestation abusive de l’autorité, agression, refus d’obéir, vengeance, intimidation, harcèlement psychologique ou sexuel, violence relationnelle ou criminelle, racisme, relations de groupe malsaines, difficulté à travailler en équipe, abus de pouvoir, favoritisme, etc."
+  },
+  {
+    q: "Définition du non-respect des politiques organisationnelles en matière de sous-performance?",
+    a: "Non-respect des normes de sécurité, des règles ou des procédures de travail, refus d’utiliser les vêtements ou les équipements de sécurité, violation des règles de confidentialité, cyberflânage, etc."
+  },
+  {
+    q: "Définition des problèmes de loyauté ou abus envers la propriété de l’organisation en matière de sous-performance?",
+    a: "Vandalisme, fraude, manipulation ou falsification de l’information ou de documents, déclarations mensongères, conflits d’intérêts, utilisation abusive ou à des fins personnelles des équipements informatiques, diverses formes de vol (temps, argent, informations, matériel, équipements), manque de loyauté, falsification de remboursements de dépenses et fautes hors du travail ayant un effet sur le travail (comme des actes criminels), etc."
+  },
+  {
+    q: "Qu’est-ce que le programme d'aide aux employés (PAE)?",
+    a: "Un PAE offre un ensemble d'interventions visant à appuyer les personnes aux prises avec des problèmes personnels qui compromettent ou sont susceptibles de compromettre leur santé, leur équilibre psychologique et leur rendement au travail. L'objectif principal d'un PA E est d'aider un employé à retrouver une performance et un comportement satisfaisants au travail."
+  },
+  {
+    q: "vrai ou faux; Certains employés qui constatent qu'un problème temporaire (par exemple, des allergies ou des épisodes de dépression saisonnière) nuit à leur performance doivent se faire proposer des accommodements par leur employeur?",
+    a: "Vrai l’employeur doit le faire"
+  },
+  {
+    q: "que veut dire ‘’colliger’’?",
+    a: "Colliger signifie recueillir, rassembler et compiler des informations ou des faits provenant de différentes sources. Ex : Rassembler des preuves et des renseignements précis concernant un incident afin de vérifier ce qui s'est réellement passé"
+  },
+  {
+    q: "que signifie ‘’ Imposer des sanctions de manière objective et constante’’?",
+    a: "Une mesure disciplinaire doit résulter d'une enquête objective du cadre dans laquelle l'employé a eu la possibilité de donner sa version des faits. En somme, la sanction doit suivre immédiatement le manquement. Elle doit être justifiée, neutre, objective (non arbitraire ou biaisée), non prise sur le coup de l'émotion et constituer en quelque sorte une solution (et non seulement une punition) pour amener l'employé à améliorer son rendement ou son comportement."
+  },
+  {
+    q: "Quelle est la différence entre l'utilisation de l'évaluation individuelle de la performance dans un milieu syndiqué et un milieu non syndiqué concernant les augmentations salariales, les promotions et le développement des compétences?",
+    a: "En milieu non syndiqué, l'évaluation individuelle sert généralement à déterminer les augmentations salariales au mérite, les primes individuelles, la rémunération variable et les promotions selon le rendement de chaque employé ; en milieu syndiqué, elle sert principalement à la formation, au coaching et au développement des compétences, puisque les salaires et les promotions reposent principalement sur la convention collective, les grilles d'échelons et l'ancienneté, afin de protéger les employés contre la subjectivité, le favoritisme et les biais personnels des gestionnaires."
+  },
+  {
+    q: "Quelle est la différence entre la rémunération basée sur la performance individuelle et la rémunération basée sur la performance collective en milieu syndiqué, et laquelle est généralement acceptée par les syndicats?",
+    a: "La rémunération individuelle est généralement refusée par les syndicats, car elle récompense certains employés davantage que d'autres selon leur évaluation personnelle (ex. : donner une prime de 5 % à Martin et de 0 % à Julie), ce qui peut créer de la compétition et un sentiment d'injustice ; la rémunération collective est acceptée, car elle récompense également les employés admissibles lorsque l'équipe, l'usine ou l'entreprise atteint ses objectifs globaux (ex. : partage des gains de productivité), favorisant ainsi la collaboration plutôt que la compétition individuelle."
+  },
+  {
+    q: "Quels critères et quelles conditions doivent être privilégiés dans la gestion de la performance et de la rémunération en milieu syndiqué comparativement à un milieu non syndiqué?",
+    a: "En milieu syndiqué, les critères doivent être objectifs, standardisés et appuyés sur des données historiques, tandis que les salaires et les promotions sont principalement encadrés par la convention collective, les grilles d'échelons et l'ancienneté ; en milieu non syndiqué, les critères peuvent reposer sur les objectifs individuels et les compétences, et les résultats de l'évaluation peuvent influencer directement les augmentations au mérite, les promotions et les primes individuelles."
+  },
+  {
+    q: "c’est quoi des multinationales?",
+    a: "Une entreprise multinationale (ou firme multinationale) est une organisation qui possède des filiales, des unités de production ou des opérations commerciales réparties dans plusieurs pays à travers le monde"
+  },
+  {
+    q: "Quelles sont les trois catégories de conditions de succès d’un programme de gestion de la performance?",
+    a: "1) Conditions techniques. 2) Acteurs. 3) Contexte."
+  },
+  {
+    q: "Quelles sont les conditions techniques de succès d’un programme de gestion de la performance?",
+    a: "Veiller à ce que les critères, les méthodes, les formulaires et les sources soient ciblés, pertinents, valides, pratiques, appliqués uniformément et alignés sur les valeurs et la stratégie d’affaires, valoriser, évaluer et récompenser les bonnes choses, donner une rétroaction constructive régulière et évaluer les comportements et les résultats."
+  },
+  {
+    q: "Quelles sont les conditions liées aux acteurs pour assurer le succès d’un programme de gestion de la performance?",
+    a: "Assurer la participation du personnel à la conception, à l’implantation et à la gestion du programme, avoir des évaluateurs possédant les compétences et les habiletés de coaching, de motivation et de minimisation des biais et des erreurs, reconnus pour le soin qu’ils apportent à la gestion de la performance, et assurer la formation, l’engagement et la motivation des employés évalués."
+  },
+  {
+    q: "Quelles sont les conditions liées au contexte pour assurer le succès d’un programme de gestion de la performance?",
+    a: "Obtenir l’appui manifeste de la direction, instaurer une culture d’amélioration continue et de haute performance, maintenir un climat de confiance et de reconnaissance, assurer une communication transparente, respecter les règles d’équité et de justice organisationnelle, garantir l’efficacité des autres activités de GRH et des autres fonctions de gestion, réduire les freins à la performance qui ne sont pas à mettre sur le compte des employés, tenir compte de l’évaluation des performances des employés faite par les cadres dans les prises de décision (promotion, transfert, etc.) et reconnaître les cadres qui gèrent avec soin la performance de leur équipe."
+  },
+  {
+    q: "synonyme de critères d’évaluation?",
+    a: "indicateurs d’évaluation"
+  },
+  {
+    q: "Identifiez trois types de critères que les professionnels de RH peuvent utiliser pour évaluer la performance des employés?",
+    a: "1) les résultats, normes et objectifs ; 2) les comportements ou les compétences observables; 3) les critères mixtes (résultats et comportements); 4) la personnalité ou les compétences non observables; 5) le potentiel et les capacité. QUOI QUE LE 4 ET 5 ON NE LES UTILISE PAS POUR ÉVALUER LA PERFORMANCE NORMALEMENT selon le manuel il me semble…"
+  },
+  {
+    q: "Définissez ce qu’est un programme d’aide aux employés et discutez de ses principaux objectifs?",
+    a: "Un programme d’aide aux employés (PAE) propose un ensemble d’interventions visant à aider les personnes aux prises avec des problèmes personnels qui compromettent ou sont susceptibles de compromettre leur santé, leur équilibre psychologique et leur rendement au travail. L’objectif principal est d’aider un employé à retrouver une performance et un comportement satisfaisant au travail (page 186, section 5.9.2 L’approche administrative : règles et principes à respecter)."
+  },
+  {
+    q: "Nomme mais c’est une des superviseurs dans ce cours?",
+    a: "cadres évaluateurs"
+  },
+  {
+    q: "Pour que le suivi de la performance individuelle soit fait de manière optimale, les superviseurs doivent assumer certaines responsabilités sur une base continue, tout comme les employés qui sont évalués, quelles sont les responsabilités des supervieurs/cadres évaluateurs?",
+    a: "performance individuelle soit fait de manière optimale, cela requiert, d’une part, que les superviseurs assument certaines responsabilités sur une base continue et, d’autre part, que tous les employés prennent également leurs responsabilités dans l’exécution et le suivi du travail. Parmi les responsabilités que doivent assumer les superviseurs, mentionnons notamment la création de conditions de travail motivantes et la reconnaissance des progrès, la sollicitation d’une rétroaction et d’un suivi en matière de performance, la rétroaction et la révision des critères de performance lorsque les conditions de travail changent. Les employés évalués, pour leur part, doivent s’engager dans l’atteinte des objectifs, solliciter une rétroaction et un suivi en matière de rendement, communiquer régulièrement avec leurs supérieurs, partager l’information sur le rendement et se préparer adéquatement en vue de leurs entretiens de rendement."
+  },
+  {
+    q: "Mentionne les principales limites des traits de personnalités comme critères d’évaluation de la performance, puis nommez certains cas où l’évaluation des comportements peut être appropriée?",
+    a: "Évaluer la performance sur la base de la personnalité d’un employé n’est pas utile; au contraire, cette pratique est nuisible, tant dans la conception du formulaire que dans l’entretien d’évaluation de la performance, et ce, pour plusieurs raisons (voir en page 165 pour plus de détails à cet effet). Dans certains cas, il est approprié d’évaluer les comportements des employés, notamment lorsque les résultats sont difficiles à déterminer et à mesurer à court terme, la contribution individuelle est difficile à mesurer, car le travail nécessite de la collaboration, le respect des valeurs organisationnelles ou des « façons de se comporter » est important et lorsque le travail des personnes évaluées comprend beaucoup plus de tâches et d’activités quotidiennes que de projets"
+  },
+  {
+    q: "Critère de performance à évaluer ‘’potentiel’’ Vs ‘’performance’’, quelles est la différence?",
+    a: "L’évaluation de la performance d’un employé consiste à porter un jugement sur son travail pendant une période passée, généralement au cours de l’année précédente. Quant à l’évaluation du potentiel, elle consiste 3 Semaine 6 à porter un jugement sur la capacité d’un employé d’assumer des responsabilités futures différentes de celles qu’il a assumées à ce jour ou supérieures à celles-ci."
+  },
+  {
+    q: "vrai ou faux; L’évaluation du potentiel est d’ailleurs inhérente à toute décision de sélection et de promotion?",
+    a: "Vrai"
+  }
+];let cards = [...originalCards];
+const markedCards = new Set();
+
+function updateErrorCount() {
+  const count = markedCards.size;
+  document.getElementById('errorBadge').textContent = count;
+  document.getElementById('modalErrorCount').textContent = count;
+
+  const total = cards.length;
+  const successful = Math.max(0, total - count);
+  const percentage = total ? Math.round((successful / total) * 100) : 0;
+  document.getElementById('successPercent').textContent = percentage + ' %';
+  document.getElementById('successFill').style.width = percentage + '%';
+  document.querySelector('.success-track').setAttribute('aria-valuenow', percentage);
+  document.getElementById('successDetails').textContent =
+    `${count} carte${count === 1 ? '' : 's'} en rouge · ${successful} carte${successful === 1 ? '' : 's'} réussie${successful === 1 ? '' : 's'} sur ${total}`;
+}
+
+function createCardFace(item, isErrorList = false) {
+  const wrap = document.createElement('div');
+  if (isErrorList) {
+    wrap.className = 'error-card';
+    wrap.innerHTML = `<button class="unmark-btn" type="button" aria-label="Retirer cette carte des cartes d'erreurs" title="Remettre cette carte en normal"></button>
+      <strong>${escapeHtml(item.q)}</strong><div class="answer">${escapeHtml(item.a)}</div>`;
+    wrap.querySelector('.unmark-btn').addEventListener('click', (event) => {
+      event.stopPropagation();
+      markedCards.delete(item);
+      render();
+      renderErrorCards();
+    });
+    wrap.addEventListener('click', () => wrap.classList.toggle('flipped'));
+    return wrap;
+  }
+
+  wrap.className = 'card-wrap' + (markedCards.has(item) ? ' marked' : '');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="face front">
+        <div>${escapeHtml(item.q)}</div>
+        <div class="hint">Clique pour voir la réponse 👆</div>
+      </div>
+      <div class="face back">
+        <div>${escapeHtml(item.a)}</div>
+        <div class="hint">Clique pour revenir à la question 👆</div>
+      </div>
+    </div>`;
+
+  const markBtn = document.createElement('button');
+  markBtn.className = 'mark-btn' + (markedCards.has(item) ? ' marked' : '');
+  markBtn.type = 'button';
+  markBtn.setAttribute('aria-label', markedCards.has(item) ? 'Retirer des cartes d’erreurs' : 'Marquer cette question comme erreur');
+  markBtn.title = markedCards.has(item) ? 'Carte marquée comme erreur' : 'Marquer comme erreur';
+  wrap.appendChild(markBtn);
+
+  markBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (markedCards.has(item)) markedCards.delete(item);
+    else markedCards.add(item);
+    render();
+    renderErrorCards();
+  });
+
+  wrap.addEventListener('click', () => {
+    wrap.querySelector('.card').classList.toggle('flipped');
+  });
+  return wrap;
+}
+
+function render() {
+  const container = document.getElementById('cards');
+  container.innerHTML = '';
+  document.getElementById('count').textContent = cards.length;
+  cards.forEach(item => container.appendChild(createCardFace(item)));
+  updateErrorCount();
+}
+
+function renderErrorCards() {
+  const container = document.getElementById('errorCardsList');
+  container.innerHTML = '';
+  const errorCards = cards.filter(item => markedCards.has(item));
+  document.getElementById('modalErrorCount').textContent = errorCards.length;
+  document.getElementById('errorBadge').textContent = errorCards.length;
+  if (errorCards.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-errors';
+    empty.textContent = 'Aucune carte en rouge pour le moment. Clique sur le point rouge d’une carte pour l’ajouter ici.';
+    container.appendChild(empty);
+    return;
+  }
+  errorCards.forEach(item => container.appendChild(createCardFace(item, true)));
+}
+
+const errorModalOverlay = document.getElementById('errorModalOverlay');
+document.getElementById('errorBubble').addEventListener('click', () => {
+  renderErrorCards();
+  errorModalOverlay.classList.add('open');
+});
+document.getElementById('closeErrorModal').addEventListener('click', () => errorModalOverlay.classList.remove('open'));
+errorModalOverlay.addEventListener('click', event => {
+  if (event.target === errorModalOverlay) errorModalOverlay.classList.remove('open');
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') errorModalOverlay.classList.remove('open');
+});
+
+function escapeHtml(value) {
+  return value
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+
+document.getElementById('shuffleBtn').addEventListener('click', () => {
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+  render();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+
+render();
+</script>
+</body>
+</html>
